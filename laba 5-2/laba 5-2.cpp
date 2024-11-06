@@ -1,133 +1,149 @@
-﻿
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <locale.h>
 
-
-#define MAX_VERTICES 10 // Увеличим максимальное количество вершин для большей гибкости
-#define MAX_EDGES 20    // Увеличим максимальное количество рёбер
-
-// Функция для создания матрицы инцидентности на основе матрицы смежности
-void create_incidence_matrix(int graph[MAX_VERTICES][MAX_VERTICES], int incidence_matrix[MAX_VERTICES][MAX_EDGES], int* edges) {
-    int edge_index = 0;
-
-    // Инициализация матрицы инцидентности
-    for (int i = 0; i < MAX_VERTICES; i++) {
-        for (int j = 0; j < MAX_EDGES; j++) {
-            incidence_matrix[i][j] = 0;
-        }
-    }
-
-    // Заполнение матрицы инцидентности на основе матрицы смежности
-    for (int i = 0; i < MAX_VERTICES; i++) {
-        for (int j = i + 1; j < MAX_VERTICES; j++) {
-            if (graph[i][j] == 1) { // Если есть ребро
-                incidence_matrix[i][edge_index] = 1; // Инцидентность для первой вершины
-                incidence_matrix[j][edge_index] = 1; // Инцидентность для второй вершины
-                edge_index++;
+void generateAdjacencyMatrix(int n, int** G) {
+    for (int i = 0; i < n; i++) {
+        for (int j = i; j < n; j++) {
+            if (i != j) {
+                G[i][j] = rand() % 2; // Генерация случайного ребра
+                G[j][i] = G[i][j];    // Симметричное значение для неориентированного графа
+            }
+            else {
+                G[i][j] = 0; // Нет петель
             }
         }
     }
-
-    *edges = edge_index; // Обновляем количество рёбер
 }
 
-// Функция для нахождения изолированных, концевых и доминирующих вершин
-void find_special_vertices(int incidence_matrix[MAX_VERTICES][MAX_EDGES], int vertices, int edges) {
+void printAdjacencyMatrix(int n, int** G) {
     setlocale(LC_ALL, "RUS");
-    int max_incident_count = 0;
-    int dominant_vertex = -1;
-
-    // Сначала находим максимальное количество инцидентных рёбер
-    for (int i = 0; i < vertices; i++) {
-        int incident_count = 0;
-        for (int j = 0; j < edges; j++) {
-            if (incidence_matrix[i][j] == 1) {
-                incident_count++;
-            }
+    printf("Матрица смежности графа G:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d ", G[i][j]);
         }
-
-        if (incident_count > max_incident_count) {
-            max_incident_count = incident_count;
-            dominant_vertex = i; // Запоминаем вершину с максимальным количеством рёбер
-        }
-    }
-
-    // Теперь определяем типы вершин
-    for (int i = 0; i < vertices; i++) {
-        int incident_count = 0;
-        for (int j = 0; j < edges; j++) {
-            if (incidence_matrix[i][j] == 1) {
-                incident_count++;
-            }
-        }
-
-        if (incident_count == 0) {
-            printf("Вершина %d является изолированной.\n", i);
-        }
-        else if (incident_count == 1) {
-            printf("Вершина %d является концевой.\n", i);
-        }
-        else if (i == dominant_vertex && incident_count == max_incident_count) {
-            printf("Вершина %d является доминирующей.\n", i);
-        }
+        printf("\n");
     }
 }
 
-int main() {
+int** createIncidenceMatrix(int n, int** G, int* edgeCount) {
+    *edgeCount = 0;
+
+    // Сначала подсчитываем количество рёбер
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (G[i][j] == 1) {
+                (*edgeCount)++;
+            }
+        }
+    }
+
+    // Создаем матрицу инцидентности
+    int** incidenceMatrix = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        incidenceMatrix[i] = (int*)calloc(*edgeCount, sizeof(int));
+    }
+
+    // Заполняем матрицу инцидентности
+    int edgeIndex = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
+            if (G[i][j] == 1) {
+                incidenceMatrix[i][edgeIndex] = 1;  // Инцидентность для первой вершины
+                incidenceMatrix[j][edgeIndex] = 1;  // Инцидентность для второй вершины
+                edgeIndex++;
+            }
+        }
+    }
+
+    return incidenceMatrix;
+}
+
+void printIncidenceMatrix(int n, int** incidenceMatrix, int edgeCount) {
+    setlocale(LC_ALL, "RUS");
+    printf("Матрица инцидентности графа G:\n");
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < edgeCount; j++) {
+            printf("%d ", incidenceMatrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void findVertexTypes(int n, int** G) {
+    setlocale(LC_ALL, "RUS");
+    int* degrees = (int*)malloc(n * sizeof(int));
+    for (int i = 0; i < n; i++) {
+        degrees[i] = 0; // Инициализация степеней вершин
+    }
+
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            degrees[i] += G[i][j]; // Подсчет степени вершины
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (degrees[i] == 0) {
+            printf("Вершина %d - изолированная\n", i);
+        }
+        if (degrees[i] == 1) {
+            printf("Вершина %d - концевая\n", i);
+        }
+    }
+
+    int max_degree = 0;
+    for (int i = 0; i < n; i++) {
+        if (degrees[i] > max_degree) {
+            max_degree = degrees[i]; // Находим максимальную степень
+        }
+    }
+
+    for (int i = 0; i < n; i++) {
+        if (degrees[i] == max_degree) {
+            printf("Вершина %d - доминирующая\n", i);
+        }
+    }
+
+    free(degrees);
+}
+
+int main(void) {
     setlocale(LC_ALL, "RUS");
     srand(time(NULL)); // Инициализация генератора случайных чисел
+    int n;
 
-    int num_vertices;
-    printf("Введите количество вершин (максимум %d): ", MAX_VERTICES);
-    scanf("%d", &num_vertices);
+    printf("Введите количество вершин: ");
+    scanf("%d", &n);
 
-    // Проверка на допустимое количество вершин
-    if (num_vertices < 1 || num_vertices > MAX_VERTICES) {
-        printf("Ошибка: количество вершин должно быть от 1 до %d.\n", MAX_VERTICES);
-        return 1;
+    // Создание матрицы смежности
+    int** G = (int**)malloc(n * sizeof(int*));
+    for (int i = 0; i < n; i++) {
+        G[i] = (int*)malloc(n * sizeof(int));
     }
 
-    int graph[MAX_VERTICES][MAX_VERTICES] = { 0 }; // Инициализация графа нулями
-    int incidence_matrix[MAX_VERTICES][MAX_EDGES];
-    int edges = 0;
+    // Генерация матрицы смежности
+    generateAdjacencyMatrix(n, G);
+    printAdjacencyMatrix(n, G);
 
-    // Генерация случайных рёбер
-    for (int i = 0; i < num_vertices; i++) {
-        for (int j = i + 1; j < num_vertices; j++) {
-            if (rand() % 2 && edges < MAX_EDGES) { // С вероятностью 50% добавляем ребро, если не превышен лимит
-                graph[i][j] = 1;
-                graph[j][i] = 1; // Для неориентированного графа
-                edges++;
-            }
-        }
+    // Создание матрицы инцидентности
+    int edgeCount;
+    int** incidenceMatrix = createIncidenceMatrix(n, G, &edgeCount);
+    printIncidenceMatrix(n, incidenceMatrix, edgeCount);
+
+    // Нахождение изолированных, концевых и доминирующих вершин
+    findVertexTypes(n, G);
+
+    // Освобождение памяти
+    for (int i = 0; i < n; i++) {
+        free(G[i]);
+        free(incidenceMatrix[i]);
     }
-
-    // Создание матрицы инцидентности на основе матрицы смежности
-    create_incidence_matrix(graph, incidence_matrix, &edges);
-
-    // Вывод матрицы смежности
-    printf("Матрица смежности:\n");
-    for (int i = 0; i < num_vertices; i++) {
-        for (int j = 0; j < num_vertices; j++) {
-            printf("%d ", graph[i][j]);
-        }
-        printf("\n");
-    }
-
-    // Вывод матрицы инцидентности
-    printf("Матрица инцидентности:\n");
-    for (int i = 0; i < num_vertices; i++) {
-        for (int j = 0; j < edges; j++) {
-            printf("%d ", incidence_matrix[i][j]);
-        }
-        printf("\n");
-    }
-
-    // Нахождение специальных вершин
-    find_special_vertices(incidence_matrix, num_vertices, edges);
+    free(G);
+    free(incidenceMatrix);
 
     return 0;
 }
